@@ -16,6 +16,7 @@
 #define SERVOMIN 150   // Minimum pulse length
 #define SERVOMAX 600   // Maximum pulse length
 #define SERVO_FREQ 50  // PWM frequency for servos
+#define OUTPUT_READABLE_YAWPITCHROLL
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);  // Assuming the PCA9685 is at address 0x40
 MPU6050 mpu;
@@ -26,8 +27,6 @@ volatile bool mpuInterrupt = false;
 uint16_t fifoCount;
 uint8_t mpuIntStatus;
 uint8_t fifoBuffer[64];  // FIFO storage buffer
-
-
 
 uint8_t devStatus;
 void dmpDataReady() {
@@ -44,16 +43,22 @@ void setup() {
   #define DEFAULT_POSITION_SERVO_0 300
   #define DEFAULT_POSITION_SERVO_1 400
   #define DEFAULT_POSITION_SERVO_2 500
+  #define DEFAULT_POSITION_SERVO_3 500
+  #define DEFAULT_POSITION_SERVO_4 500
 
   // Set default positions for each servo
   pwm.setPWM(0, 0, DEFAULT_POSITION_SERVO_0);
   pwm.setPWM(1, 0, DEFAULT_POSITION_SERVO_1);
   pwm.setPWM(2, 0, DEFAULT_POSITION_SERVO_2);
+  pwm.setPWM(3, 0, DEFAULT_POSITION_SERVO_3);
+  pwm.setPWM(4, 0, DEFAULT_POSITION_SERVO_4);
   
   // Read initial positions of the servos
   int initialServo0Position = DEFAULT_POSITION_SERVO_0;
   int initialServo1Position = DEFAULT_POSITION_SERVO_1;
   int initialServo2Position = DEFAULT_POSITION_SERVO_2;
+  int initialServo3Position = DEFAULT_POSITION_SERVO_3;
+  int initialServo4Position = DEFAULT_POSITION_SERVO_4;
 
   // Print initial positions to the console
   Serial.print("Initial Servo 0 Position: ");
@@ -62,11 +67,21 @@ void setup() {
   Serial.println(initialServo1Position);
   Serial.print("Initial Servo 2 Position: ");
   Serial.println(initialServo2Position);
+  Serial.print("Initial Servo 3 Position: ");
+  Serial.println(initialServo3Position);
+  Serial.print("Initial Servo 4 Position: ");
+  Serial.println(initialServo4Position);
 }
 
 
 void loop() {
   if (!dmpReady) return;
+
+  Quaternion q;         // Declare quaternion variable
+  VectorFloat gravity;  // Declare gravity vector variable
+  float ypr[3];         // Declare yaw-pitch-roll array
+  int j = 0;            // Declare and initialize counter variable
+  float correct = 0.0;  // Declare and initialize correction variable
 
   while (!mpuInterrupt && fifoCount < packetSize) {
     if (mpuInterrupt && fifoCount < packetSize) {
@@ -107,9 +122,9 @@ void loop() {
       // Map the values of the MPU6050 sensor from -90 to 90 to values suitable for the servo control from 0 to 180
       int servo0Value = map(ypr[0], -90, 90, 0, 180);  // Servo 0 - Y plane (Pitch)
       int servo1Value = map(ypr[1], -90, 90, 0, 180);  // Servo 1 - X plane (Yaw)
-      int servo2Value = map(ypr[0], -90, 90, 0, 180);  // Servo 2 - Oppositional to Servo 0 (Pitch)
+      int servo2Value = map(ypr[0], -90, 90, 0, 180);  // Servo 2 - Same as Servo 0 (Pitch)
       int servo3Value = map(ypr[2], -90, 90, 0, 180);  // Servo 3 - Rotational plane of Y (Roll)
-      int servo4Value = map(ypr[1], -90, 90, 180, 0);  // Servo 4 - Opposite of Servo 1 on X plane (Yaw)
+      int servo4Value = map(ypr[1], -90, 90, 0, 180);  // Servo 4 - Same as Servo 1 on X plane (Yaw)
 
       // Control the servos according to the MPU6050 orientation
       pwm.setPWM(0, 0, servo0Value);  // Set pulse for servo 0
