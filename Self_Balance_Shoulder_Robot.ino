@@ -1,20 +1,19 @@
-#include <Adafruit_PWMServoDriver.h>
-
 /*
   Robotic Arm Self Balance Camera(Adafruit PCA9685 + MPU6050)
   by Hyacinthhax
-  Based on Gimbal Project by Dejan, www.HowToMechatronics.com
+  Based on Gimbal Project by Dejan, https://howtomechatronics.com/projects/diy-arduino-gimbal-self-stabilizing-platform/
   Code based on the MPU6050_DMP6 example from the i2cdevlib library by Jeff Rowberg:
   https://github.com/jrowberg/i2cdevlib
 */
 
+#include <Adafruit_PWMServoDriver.h>
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
 
-#define SERVOMIN 150   // Minimum pulse length
-#define SERVOMAX 600   // Maximum pulse length
+#define SERVOMIN 1000   // Minimum pulse length
+#define SERVOMAX 2000   // Maximum pulse length
 #define SERVO_FREQ 50  // PWM frequency for servos
 #define OUTPUT_READABLE_YAWPITCHROLL
 
@@ -27,6 +26,17 @@ volatile bool mpuInterrupt = false;
 uint16_t fifoCount;
 uint8_t mpuIntStatus;
 uint8_t fifoBuffer[64];  // FIFO storage buffer
+#define DEFAULT_POSITION_SERVO_0 135
+#define DEFAULT_POSITION_SERVO_1 90
+#define DEFAULT_POSITION_SERVO_2 270
+#define DEFAULT_POSITION_SERVO_3 135
+#define DEFAULT_POSITION_SERVO_4 135
+
+int get_pwm(float angle) {
+    // Calculate PWM value based on angle (degrees)
+    // Formula: PWM = (angle / 18.0) + 2.5
+    return (int)((angle / 18.0) + 2.5);
+}
 
 uint8_t devStatus;
 void dmpDataReady() {
@@ -39,19 +49,13 @@ void setup() {
   Serial.begin(38400);
   while (!Serial)
     ;  // wait for Leonardo enumeration, others continue immediately
-    
-  #define DEFAULT_POSITION_SERVO_0 300
-  #define DEFAULT_POSITION_SERVO_1 400
-  #define DEFAULT_POSITION_SERVO_2 500
-  #define DEFAULT_POSITION_SERVO_3 500
-  #define DEFAULT_POSITION_SERVO_4 500
 
-  // Set default positions for each servo
-  pwm.setPWM(0, 0, DEFAULT_POSITION_SERVO_0);
-  pwm.setPWM(1, 0, DEFAULT_POSITION_SERVO_1);
-  pwm.setPWM(2, 0, DEFAULT_POSITION_SERVO_2);
-  pwm.setPWM(3, 0, DEFAULT_POSITION_SERVO_3);
-  pwm.setPWM(4, 0, DEFAULT_POSITION_SERVO_4);
+  // Set default positions for each servo using get_pwm function
+  pwm.setPWM(0, 0, get_pwm(DEFAULT_POSITION_SERVO_0));
+  pwm.setPWM(1, 0, get_pwm(DEFAULT_POSITION_SERVO_1));
+  pwm.setPWM(2, 0, get_pwm(DEFAULT_POSITION_SERVO_2));
+  pwm.setPWM(3, 0, get_pwm(DEFAULT_POSITION_SERVO_3));
+  pwm.setPWM(4, 0, get_pwm(DEFAULT_POSITION_SERVO_4));
   
   // Read initial positions of the servos
   int initialServo0Position = DEFAULT_POSITION_SERVO_0;
